@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,16 +46,15 @@ func TestAddGetDelete(t *testing.T) {
 	// get
 	actParcel, err := store.Get(id)
 	require.NoError(t, err)
-	require.Equal(t, parcel.Client, actParcel.Client)
-	require.Equal(t, parcel.Status, actParcel.Status)
-	require.Equal(t, parcel.Address, actParcel.Address)
-	require.Equal(t, parcel.CreatedAt, actParcel.CreatedAt)
+	parcel.Number = actParcel.Number
+	assert.Equal(t, parcel, actParcel)
 
 	// delete
 	err = store.Delete(id)
 	require.NoError(t, err)
 	_, err = store.Get(id)
-	require.Equal(t, sql.ErrNoRows, err)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
 // TestSetAddress проверяет обновление адреса
@@ -80,7 +80,7 @@ func TestSetAddress(t *testing.T) {
 	// check
 	storedParcel, err := store.Get(id)
 	require.NoError(t, err)
-	require.Equal(t, newAddress, storedParcel.Address)
+	assert.Equal(t, newAddress, storedParcel.Address)
 }
 
 // TestSetStatus проверяет обновление статуса
@@ -106,7 +106,7 @@ func TestSetStatus(t *testing.T) {
 	// check
 	storedParcel, err := store.Get(id)
 	require.NoError(t, err)
-	require.Equal(t, newStatus, storedParcel.Status)
+	assert.Equal(t, newStatus, storedParcel.Status)
 }
 
 // TestGetByClient проверяет получение посылок по идентификатору клиента
@@ -123,7 +123,6 @@ func TestGetByClient(t *testing.T) {
 		getTestParcel(),
 		getTestParcel(),
 	}
-	parcelMap := map[int]Parcel{}
 
 	// задаём всем посылкам один и тот же идентификатор клиента
 	client := randRange.Intn(10_000_000)
@@ -139,9 +138,6 @@ func TestGetByClient(t *testing.T) {
 
 		// обновляем идентификатор добавленной у посылки
 		parcels[i].Number = id
-
-		// сохраняем добавленную посылку в структуру map, чтобы её можно было легко достать по идентификатору посылки
-		parcelMap[id] = parcels[i]
 	}
 
 	// get by client
@@ -150,13 +146,5 @@ func TestGetByClient(t *testing.T) {
 	require.Len(t, storedParcels, len(parcels))
 
 	// check
-	for _, parcel := range storedParcels {
-		expParcel, ok := parcelMap[parcel.Number]
-		require.True(t, ok)
-		require.Equal(t, expParcel.Number, parcel.Number)
-		require.Equal(t, expParcel.Client, parcel.Client)
-		require.Equal(t, expParcel.Status, parcel.Status)
-		require.Equal(t, expParcel.Address, parcel.Address)
-		require.Equal(t, expParcel.CreatedAt, parcel.CreatedAt)
-	}
+	assert.ElementsMatch(t, parcels, storedParcels)
 }

@@ -36,6 +36,9 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 
 	p := Parcel{}
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
+	if err != nil {
+		return Parcel{}, err
+	}
 	return p, err
 }
 
@@ -49,6 +52,9 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 
 	var res []Parcel
 	for rows.Next() {
+		if err = rows.Err(); err != nil {
+			return nil, err
+		}
 		parcel := Parcel{}
 		err := rows.Scan(&parcel.Number, &parcel.Client, &parcel.Status, &parcel.Address, &parcel.CreatedAt)
 		if err != nil {
